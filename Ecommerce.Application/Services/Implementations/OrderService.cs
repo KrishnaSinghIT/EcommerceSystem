@@ -1,26 +1,36 @@
-﻿using Ecommerce.Application.Discounts;
+﻿using Ecommerce.Application.Common;
+using Ecommerce.Application.Discounts;
 using Ecommerce.Application.DTOs.Order;
 using Ecommerce.Application.Factories;
 using Ecommerce.Application.Interface.CommonPersitance;
+using Ecommerce.Application.Observers;
 using Ecommerce.Application.Services.Interfaces;
 using Ecommerce.Domain.Entities;
 using Ecommerce.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Ecommerce.Application.Services.Implementations
 {
     public class OrderService : IOrderService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IOrderStatusNotifier _notifier;
+        private readonly ILogger<OrderService> _logger;
 
-        public OrderService(IUnitOfWork unitOfWork)
+        public OrderService(IUnitOfWork unitOfWork,IOrderStatusNotifier notifier, ILogger<OrderService> logger)
         {
             _unitOfWork = unitOfWork;
+            _notifier = notifier;
+            _logger = logger;
         }
-        public async Task<int> CreateOrderAsync(CreateOrderRequest request)
+        public async Task<Result<int>> CreateOrderAsync(CreateOrderRequest request)
         {
-            var customer = await _unitOfWork.Customers.GetByIdAsync(request.CustomerId)
-                ?? throw new Exception("Customer not found");
+            _logger.LogInformation("Creating order for customer {CustomerId} at {Time}", request.CustomerId,DateTime.Now);
+            var customer = await _unitOfWork.Customers.GetByIdAsync(request.CustomerId);
+
+            if (customer == null)
+                return Result<int>.Failure("Customer not found");
 
             var order = new Order
             {
@@ -34,11 +44,13 @@ namespace Ecommerce.Application.Services.Implementations
 
             foreach (var item in request.Items)
             {
-                var product = await _unitOfWork.Products.GetByIdAsync(item.ProductId)
-                    ?? throw new Exception($"Product ID {item.ProductId} not found");
+                var product = await _unitOfWork.Products.GetByIdAsync(item.ProductId);
+
+                if (product == null)
+                    return Result<int>.Failure($"Product ID {item.ProductId} not found");
 
                 if (product.ProductType == ProductType.Physical && product.InventoryCount < item.Quantity)
-                    throw new Exception($"Insufficient inventory for product {product.Name}");
+                    return Result<int>.Failure($"Insufficient inventory for product {product.Name}");
 
                 totalAmount += product.Price * item.Quantity;
 
@@ -72,9 +84,10 @@ namespace Ecommerce.Application.Services.Implementations
             await _unitOfWork.Orders.AddAsync(order);
             await _unitOfWork.SaveChangesAsync();
 
-            return order.Id;
+            _logger.LogInformation("Order Created succesfully for CustomerId {CustomerId} at {Time}", request.CustomerId, DateTime.Now);
+            return Result<int>.Success(order.Id, "Order created successfully.");
         }
-        public async Task<OrderResponse?> GetOrderByIdAsync(int id)
+        public async Task<Result<OrderResponse>> GetOrderByIdAsync(int id)
         {
             var order = await _unitOfWork.Orders.Query()
                 .Include(o => o.Customer)
@@ -83,9 +96,9 @@ namespace Ecommerce.Application.Services.Implementations
                 .FirstOrDefaultAsync(o => o.Id == id);
 
             if (order == null)
-                return null;
+                return Result<OrderResponse>.Failure("Order not found.");
 
-            return new OrderResponse
+            var response = new OrderResponse
             {
                 OrderId = order.Id,
                 CustomerName = order.Customer.Name,
@@ -98,9 +111,11 @@ namespace Ecommerce.Application.Services.Implementations
                     Quantity = i.Quantity
                 }).ToList()
             };
+
+            return Result<OrderResponse>.Success(response, "Order retrieved successfully.");
         }
 
-        public async Task<IEnumerable<OrderResponse>> GetOrdersByCustomerAsync(int customerId)
+        public async Task<Result<List<OrderResponse>>> GetOrdersByCustomerAsync(int customerId)
         {
             var orders = await _unitOfWork.Orders.Query()
                 .Where(o => o.CustomerId == customerId)
@@ -108,7 +123,10 @@ namespace Ecommerce.Application.Services.Implementations
                 .Include(o => o.Items)
                 .ToListAsync();
 
-            return orders.Select(order => new OrderResponse
+            if (!orders.Any())
+                return Result<List<OrderResponse>>.Failure("No orders found for this customer.");
+
+            var orderResponses = orders.Select(order => new OrderResponse
             {
                 OrderId = order.Id,
                 CustomerName = order.Customer.Name, // Or fetch from joined Customer
@@ -120,20 +138,30 @@ namespace Ecommerce.Application.Services.Implementations
                     ProductId = i.ProductId,
                     Quantity = i.Quantity
                 }).ToList()
-            });
+            }).ToList();
+
+            return Result<List<OrderResponse>>.Success(orderResponses, "Orders retrieved successfully.");
+
         }
 
-        public async Task<bool> UpdateOrderStatusAsync(int id, string status)
+        public async Task<Result<string>> UpdateOrderStatusAsync(int id, string status)
         {
+            _logger.LogInformation("Updating order status for customer {CustomerId} at {Time}", id, DateTime.Now);
             var order = await _unitOfWork.Orders.GetByIdAsync(id);
-            if (order == null) return false;
+            if (order == null)
+                return Result<string>.Failure("Order not found.");
 
             if (!Enum.TryParse<OrderStatus>(status, true, out var newStatus))
-                throw new Exception("Invalid status");
+                return Result<string>.Failure("Invalid order status.");
 
             order.Status = newStatus;
             await _unitOfWork.SaveChangesAsync();
-            return true;
+
+            _logger.LogInformation("Order status updated successfully for customer {CustomerId} at {Time}", id, DateTime.Now);
+            await _notifier.NotifyAsync(order.Id, newStatus.ToString());
+
+            return Result<string>.Success("Order status updated successfully.");
         }
+
     }
 }

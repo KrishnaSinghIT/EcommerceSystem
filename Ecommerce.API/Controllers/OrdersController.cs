@@ -21,8 +21,9 @@ namespace Ecommerce.API.Controllers
         [HttpPost("createOrders")]
         public async Task<IActionResult> CreateOrder([FromBody] CreateOrderRequest request)
         {
-            var orderId = await _orderService.CreateOrderAsync(request);
-            return CreatedAtAction(nameof(GetOrderById), new { id = orderId }, new { orderId });
+            var result = await _orderService.CreateOrderAsync(request);
+
+            return result.IsSuccess ? CreatedAtAction(nameof(GetOrderById), new { id = result.Data }, result) : BadRequest(result);
         }
 
         /// <summary>
@@ -32,6 +33,7 @@ namespace Ecommerce.API.Controllers
         public async Task<IActionResult> GetOrderById(int id)
         {
             var result = await _orderService.GetOrderByIdAsync(id);
+
             if (result == null)
                 return NotFound();
 
@@ -41,28 +43,29 @@ namespace Ecommerce.API.Controllers
         /// <summary>
         /// Updates the status of an order.
         /// </summary>
-        [HttpPut("updateStatusById/{id:int}")]
+        [HttpPut("updateOrderStatusById/{id:int}")]
         public async Task<IActionResult> UpdateStatus(int id, [FromQuery] string status)
         {
-            try
-            {
-                var success = await _orderService.UpdateOrderStatusAsync(id, status);
-                return success ? Ok("Status updated") : NotFound("Order not found");
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            var result = await _orderService.UpdateOrderStatusAsync(id, status);
+
+            if (!result.IsSuccess)
+                return NotFound(result);
+
+            return Ok(result);
         }
 
         /// <summary>
         /// Gets all orders for a customer.
         /// </summary>
-        [HttpGet("getCustomerOrders/bycustomerId/{customerId:int}")]
+        [HttpGet("getCustomerOrdersById/{customerId:int}")]
         public async Task<IActionResult> GetCustomerOrders(int customerId)
         {
-            var orders = await _orderService.GetOrdersByCustomerAsync(customerId);
-            return Ok(orders);
+            var result = await _orderService.GetOrdersByCustomerAsync(customerId);
+
+            if (!result.IsSuccess)
+                return NotFound(result);
+
+            return Ok(result);
         }
     }
 }

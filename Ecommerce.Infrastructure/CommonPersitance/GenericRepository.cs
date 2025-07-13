@@ -27,7 +27,7 @@ namespace Ecommerce.Infrastructure.CommonPersitance
         public virtual void Update(T entity)
             => _dbSet.Update(entity);
 
-        public virtual void Delete(T entity)
+        public virtual void Delete(T entity)  // look into 
             => _dbSet.Remove(entity);
 
         public virtual IQueryable<T> Query()
