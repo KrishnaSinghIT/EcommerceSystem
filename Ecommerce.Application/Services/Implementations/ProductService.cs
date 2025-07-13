@@ -3,20 +3,34 @@ using Ecommerce.Application.DTOs.Product;
 using Ecommerce.Application.Interface.CommonPersitance;
 using Ecommerce.Application.Services.Interfaces;
 using Ecommerce.Domain.Enums;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 
 namespace Ecommerce.Application.Services.Implementations
 {
     public class ProductService : IProductService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IMemoryCache _cache;
+        private readonly ILogger<ProductService> _logger;
 
-        public ProductService(IUnitOfWork unitOfWork)
+        public ProductService(IUnitOfWork unitOfWork, IMemoryCache cache, ILogger<ProductService> logger)
         {
             _unitOfWork = unitOfWork;
+            _cache = cache;
+            _logger = logger;
         }
 
         public async Task<Result<List<ProductDto>>> GetAllProductsAsync()
         {
+            const string cacheKey = "product_list_cache";
+
+            if (_cache.TryGetValue(cacheKey, out List<ProductDto>? cachedProducts) && cachedProducts is not null)
+            {
+                _logger.LogInformation("Products served from cache.");
+                return Result<List<ProductDto>>.Success(cachedProducts, "Products retrieved successfully.");
+            }
+
             var products = await _unitOfWork.Products.GetAllAsync();
 
             if (products == null || !products.Any())
@@ -30,6 +44,15 @@ namespace Ecommerce.Application.Services.Implementations
                 ProductType = p.ProductType.ToString(),
                 InventoryCount = p.InventoryCount
             }).ToList();
+
+            _logger.LogInformation("Products fetched from DB and cached.");
+
+            _cache.Set(cacheKey, productDtos, new MemoryCacheEntryOptions
+            {
+                SlidingExpiration = TimeSpan.FromMinutes(5),
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(15)
+            });
+
             return Result<List<ProductDto>>.Success(productDtos, "Products retrieved successfully.");
         }
 
@@ -45,6 +68,9 @@ namespace Ecommerce.Application.Services.Implementations
 
             product.InventoryCount += quantityToAdd;
             await _unitOfWork.SaveChangesAsync();
+
+            _cache.Remove("product_list_cache");
+
             return Result<string>.Success("Inventory updated successfully.");
         }
 

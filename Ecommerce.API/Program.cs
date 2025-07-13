@@ -50,6 +50,8 @@ builder.Services.AddSwaggerGen();
 
 builder.Host.UseSerilog();
 
+builder.Services.AddMemoryCache(); 
+
 builder.Services.AddHealthChecks()
     .AddSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection")!,
