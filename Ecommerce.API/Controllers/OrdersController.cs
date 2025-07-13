@@ -18,7 +18,7 @@ namespace Ecommerce.API.Controllers
         /// <summary>
         /// Creates a new order.
         /// </summary>
-        [HttpPost]
+        [HttpPost("createOrders")]
         public async Task<IActionResult> CreateOrder([FromBody] CreateOrderRequest request)
         {
             var orderId = await _orderService.CreateOrderAsync(request);
@@ -28,31 +28,41 @@ namespace Ecommerce.API.Controllers
         /// <summary>
         /// Gets order details by ID.
         /// </summary>
-        [HttpGet("{id:int}")]
+        [HttpGet("getOrderById/{id:int}")]
         public async Task<IActionResult> GetOrderById(int id)
         {
-            // Will be implemented later (get logic)
-            return Ok(new { message = "Not implemented yet" });
+            var result = await _orderService.GetOrderByIdAsync(id);
+            if (result == null)
+                return NotFound();
+
+            return Ok(result);
         }
 
         /// <summary>
         /// Updates the status of an order.
         /// </summary>
-        [HttpPut("{id:int}/status")]
+        [HttpPut("updateStatusById/{id:int}")]
         public async Task<IActionResult> UpdateStatus(int id, [FromQuery] string status)
         {
-            // Will be implemented later (status update logic)
-            return Ok(new { message = "Not implemented yet" });
+            try
+            {
+                var success = await _orderService.UpdateOrderStatusAsync(id, status);
+                return success ? Ok("Status updated") : NotFound("Order not found");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         /// <summary>
         /// Gets all orders for a customer.
         /// </summary>
-        [HttpGet("/api/customers/{customerId:int}/orders")]
+        [HttpGet("getCustomerOrders/bycustomerId/{customerId:int}")]
         public async Task<IActionResult> GetCustomerOrders(int customerId)
         {
-            // Will be implemented later (filter by customer)
-            return Ok(new { message = "Not implemented yet" });
+            var orders = await _orderService.GetOrdersByCustomerAsync(customerId);
+            return Ok(orders);
         }
     }
 }

@@ -89,3 +89,8 @@ out/
 /Ecommerce.Infrastructure/obj/Debug/net8.0/Ecommerce.Infrastructure.genruntimeconfig.cache
 /Ecommerce.Infrastructure/obj/Debug/net8.0/Ecommerce.Infrastructure.pdb
 /Ecommerce.Infrastructure/obj/project.nuget.cache
+/Ecommerce.Application/obj/Ecommerce.Application.csproj.nuget.g.props
+/Ecommerce.Application/obj/Ecommerce.Application.csproj.nuget.g.targets
+/Ecommerce.API/bin/Debug/net8.0/Ecommerce.API.deps.json
+/Ecommerce.API/obj/Debug/net8.0/ApiEndpoints.json
+/Ecommerce.Infrastructure/bin/Debug/net8.0/Ecommerce.Infrastructure.deps.json
