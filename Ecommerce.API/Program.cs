@@ -5,12 +5,15 @@ using Ecommerce.Application.Interface.CommonPersitance;
 using Ecommerce.Application.Observers;
 using Ecommerce.Application.Services.Implementations;
 using Ecommerce.Application.Services.Interfaces;
+using Ecommerce.Application.Services.Monitoring;
 using Ecommerce.Application.Validators;
 using Ecommerce.Infrastructure.CommonPersitance;
 using Ecommerce.Infrastructure.Data;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.EntityFrameworkCore;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using Serilog;
 
 Log.Logger = new LoggerConfiguration()
@@ -41,6 +44,8 @@ builder.Services.AddSingleton<IOrderProcessingQueue, OrderProcessingQueue>();
 
 builder.Services.AddHostedService<OrderFulfillmentService>();
 
+builder.Services.AddSingleton<IMetricsService, MetricsService>();
+
 builder.Services.AddFluentValidationAutoValidation()
                 .AddFluentValidationClientsideAdapters();
 
@@ -53,7 +58,18 @@ builder.Services.AddSwaggerGen();
 
 builder.Host.UseSerilog();
 
-builder.Services.AddMemoryCache(); 
+builder.Services.AddMemoryCache();
+
+builder.Services.AddOpenTelemetry()
+    .WithTracing(tracerProviderBuilder =>
+    {
+        tracerProviderBuilder
+            .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("EcommerceSystem"))
+            .AddAspNetCoreInstrumentation()
+            .AddHttpClientInstrumentation()
+            .AddSqlClientInstrumentation()
+            .AddConsoleExporter(); // we can also use AddZipkinExporter for UI repsentation
+    });
 
 builder.Services.AddHealthChecks()
     .AddSqlServer(

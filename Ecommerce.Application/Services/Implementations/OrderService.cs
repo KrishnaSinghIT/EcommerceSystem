@@ -6,6 +6,7 @@ using Ecommerce.Application.Factories;
 using Ecommerce.Application.Interface.CommonPersitance;
 using Ecommerce.Application.Observers;
 using Ecommerce.Application.Services.Interfaces;
+using Ecommerce.Application.Services.Monitoring;
 using Ecommerce.Domain.Entities;
 using Ecommerce.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
@@ -19,12 +20,15 @@ namespace Ecommerce.Application.Services.Implementations
         private readonly IOrderStatusNotifier _notifier;
         private readonly ILogger<OrderService> _logger;
         private readonly IOrderProcessingQueue _orderQueue;
-        public OrderService(IUnitOfWork unitOfWork,IOrderStatusNotifier notifier, ILogger<OrderService> logger, IOrderProcessingQueue orderQueue)
+        private readonly IMetricsService _metrics;
+
+        public OrderService(IUnitOfWork unitOfWork,IOrderStatusNotifier notifier, ILogger<OrderService> logger, IOrderProcessingQueue orderQueue, IMetricsService metrics)
         {
             _unitOfWork = unitOfWork;
             _notifier = notifier;
             _logger = logger;
             _orderQueue = orderQueue;
+            _metrics = metrics;
         }
         public async Task<Result<int>> CreateOrderAsync(CreateOrderRequest request)
         {
@@ -32,7 +36,10 @@ namespace Ecommerce.Application.Services.Implementations
             var customer = await _unitOfWork.Customers.GetByIdAsync(request.CustomerId);
 
             if (customer == null)
+            {
+                _metrics.IncrementFailedOrders(); 
                 return Result<int>.Failure("Customer not found");
+            }
 
             var order = new Order
             {
@@ -49,10 +56,16 @@ namespace Ecommerce.Application.Services.Implementations
                 var product = await _unitOfWork.Products.GetByIdAsync(item.ProductId);
 
                 if (product == null)
+                {
+                    _metrics.IncrementFailedOrders();
                     return Result<int>.Failure($"Product ID {item.ProductId} not found");
+                }
 
                 if (product.ProductType == ProductType.Physical && product.InventoryCount < item.Quantity)
+                {
+                    _metrics.IncrementFailedOrders(); 
                     return Result<int>.Failure($"Insufficient inventory for product {product.Name}");
+                }
 
                 totalAmount += product.Price * item.Quantity;
 
@@ -85,6 +98,8 @@ namespace Ecommerce.Application.Services.Implementations
 
             await _unitOfWork.Orders.AddAsync(order);
             await _unitOfWork.SaveChangesAsync();
+            
+            _metrics.IncrementOrdersPlaced();
 
             _logger.LogInformation("Order Created succesfully for CustomerId {CustomerId} at {Time}", request.CustomerId, DateTime.Now);
             return Result<int>.Success(order.Id, "Order created successfully.");
@@ -165,6 +180,8 @@ namespace Ecommerce.Application.Services.Implementations
 
             order.Status = newStatus;
             await _unitOfWork.SaveChangesAsync();
+
+            _metrics.IncrementInventoryUpdates();
 
             _logger.LogInformation("Order status updated successfully for customer {CustomerId} at {Time}", id, DateTime.Now);
             await _notifier.NotifyAsync(order.Id, newStatus.ToString());
