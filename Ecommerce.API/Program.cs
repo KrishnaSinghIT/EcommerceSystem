@@ -1,5 +1,6 @@
 using Ecommerce.API.BackgroundJobs;
 using Ecommerce.API.Middleware;
+using Ecommerce.Application.BackgroundQueue;
 using Ecommerce.Application.Interface.CommonPersitance;
 using Ecommerce.Application.Observers;
 using Ecommerce.Application.Services.Implementations;
@@ -35,6 +36,8 @@ builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddSingleton<IOrderStatusNotifier, OrderStatusNotifier>();
 builder.Services.AddSingleton<IOrderStatusObserver, EmailNotifier>();
 builder.Services.AddSingleton<IOrderStatusObserver, LoggerNotifier>();
+
+builder.Services.AddSingleton<IOrderProcessingQueue, OrderProcessingQueue>();
 
 builder.Services.AddHostedService<OrderFulfillmentService>();
 

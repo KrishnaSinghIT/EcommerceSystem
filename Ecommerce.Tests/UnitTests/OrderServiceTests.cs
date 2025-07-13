@@ -1,4 +1,5 @@
-﻿using Ecommerce.Application.DTOs.Order;
+﻿using Ecommerce.Application.BackgroundQueue;
+using Ecommerce.Application.DTOs.Order;
 using Ecommerce.Application.Interface.CommonPersitance;
 using Ecommerce.Application.Observers;
 using Ecommerce.Application.Services.Implementations;
@@ -15,9 +16,9 @@ namespace Ecommerce.Tests.UnitTests
         private readonly Mock<IUnitOfWork> _mockUow = new();
         private readonly Mock<IOrderStatusNotifier> _mockNotifier = new();
         private readonly Mock<ILogger<OrderService>> _mockLogger = new();
-
+        private readonly Mock<IOrderProcessingQueue> _mockorderQueue = new();
         private OrderService CreateService()
-        => new(_mockUow.Object, _mockNotifier.Object, _mockLogger.Object);
+        => new(_mockUow.Object, _mockNotifier.Object, _mockLogger.Object, _mockorderQueue.Object);
 
         [Fact]
         public async Task Should_Apply_Premium_Discount_When_Customer_Is_Premium()

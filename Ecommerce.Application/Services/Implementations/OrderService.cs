@@ -1,4 +1,5 @@
-﻿using Ecommerce.Application.Common;
+﻿using Ecommerce.Application.BackgroundQueue;
+using Ecommerce.Application.Common;
 using Ecommerce.Application.Discounts;
 using Ecommerce.Application.DTOs.Order;
 using Ecommerce.Application.Factories;
@@ -17,12 +18,13 @@ namespace Ecommerce.Application.Services.Implementations
         private readonly IUnitOfWork _unitOfWork;
         private readonly IOrderStatusNotifier _notifier;
         private readonly ILogger<OrderService> _logger;
-
-        public OrderService(IUnitOfWork unitOfWork,IOrderStatusNotifier notifier, ILogger<OrderService> logger)
+        private readonly IOrderProcessingQueue _orderQueue;
+        public OrderService(IUnitOfWork unitOfWork,IOrderStatusNotifier notifier, ILogger<OrderService> logger, IOrderProcessingQueue orderQueue)
         {
             _unitOfWork = unitOfWork;
             _notifier = notifier;
             _logger = logger;
+            _orderQueue = orderQueue;
         }
         public async Task<Result<int>> CreateOrderAsync(CreateOrderRequest request)
         {
@@ -153,6 +155,13 @@ namespace Ecommerce.Application.Services.Implementations
 
             if (!Enum.TryParse<OrderStatus>(status, true, out var newStatus))
                 return Result<string>.Failure("Invalid order status.");
+
+            // Enqueue only if status is Processing
+            if (newStatus == OrderStatus.Processing)
+            {
+                _logger.LogInformation("Enqueuing order {OrderId} for fulfillment", id);
+                _orderQueue.Enqueue(order.Id);
+            }
 
             order.Status = newStatus;
             await _unitOfWork.SaveChangesAsync();
