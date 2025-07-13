@@ -1,0 +1,11 @@
+E:\Krishna\DotNet\Projects\EcommerceSystem\Ecommerce.Domain\bin\Debug\net8.0\Ecommerce.Domain.deps.json
+E:\Krishna\DotNet\Projects\EcommerceSystem\Ecommerce.Domain\bin\Debug\net8.0\Ecommerce.Domain.dll
+E:\Krishna\DotNet\Projects\EcommerceSystem\Ecommerce.Domain\bin\Debug\net8.0\Ecommerce.Domain.pdb
+E:\Krishna\DotNet\Projects\EcommerceSystem\Ecommerce.Domain\obj\Debug\net8.0\Ecommerce.Domain.GeneratedMSBuildEditorConfig.editorconfig
+E:\Krishna\DotNet\Projects\EcommerceSystem\Ecommerce.Domain\obj\Debug\net8.0\Ecommerce.Domain.AssemblyInfoInputs.cache
+E:\Krishna\DotNet\Projects\EcommerceSystem\Ecommerce.Domain\obj\Debug\net8.0\Ecommerce.Domain.AssemblyInfo.cs
+E:\Krishna\DotNet\Projects\EcommerceSystem\Ecommerce.Domain\obj\Debug\net8.0\Ecommerce.Domain.csproj.CoreCompileInputs.cache
+E:\Krishna\DotNet\Projects\EcommerceSystem\Ecommerce.Domain\obj\Debug\net8.0\Ecommerce.Domain.dll
+E:\Krishna\DotNet\Projects\EcommerceSystem\Ecommerce.Domain\obj\Debug\net8.0\refint\Ecommerce.Domain.dll
+E:\Krishna\DotNet\Projects\EcommerceSystem\Ecommerce.Domain\obj\Debug\net8.0\Ecommerce.Domain.pdb
+E:\Krishna\DotNet\Projects\EcommerceSystem\Ecommerce.Domain\obj\Debug\net8.0\ref\Ecommerce.Domain.dll
