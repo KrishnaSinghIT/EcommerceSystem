@@ -50,6 +50,13 @@ builder.Services.AddSwaggerGen();
 
 builder.Host.UseSerilog();
 
+builder.Services.AddHealthChecks()
+    .AddSqlServer(
+        builder.Configuration.GetConnectionString("DefaultConnection")!,
+        name: "sql",
+        failureStatus: Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy
+    );
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -63,6 +70,9 @@ app.UseMiddleware<ExceptionMiddleware>();
 
 app.UseAuthorization();
 app.MapControllers();
+
+app.MapHealthChecks("/health");
+
 //app.UseHttpsRedirection();
 
 var notifier = app.Services.GetRequiredService<IOrderStatusNotifier>();
