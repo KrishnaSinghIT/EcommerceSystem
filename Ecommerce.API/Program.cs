@@ -82,3 +82,4 @@ notifier.Subscribe(new LoggerNotifier()); // Manual instance
 
 
 app.Run();
+public partial class Program { } 

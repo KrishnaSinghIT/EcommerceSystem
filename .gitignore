@@ -124,3 +124,14 @@ out/
 /.vs/ProjectEvaluation/ecommercesystem.projects.v9.bin
 /.vs/ProjectEvaluation/ecommercesystem.strings.v9.bin
 /.vs/EcommerceSystem/v17/.futdcache.v2
+/Ecommerce.Domain/bin/Debug/net8.0/Ecommerce.Domain.dll
+/Ecommerce.Domain/bin/Debug/net8.0/Ecommerce.Domain.pdb
+/Ecommerce.Domain/obj/Debug/net8.0/ref/Ecommerce.Domain.dll
+/Ecommerce.Domain/obj/Debug/net8.0/refint/Ecommerce.Domain.dll
+/Ecommerce.Domain/obj/Debug/net8.0/Ecommerce.Domain.csproj.FileListAbsolute.txt
+/Ecommerce.Domain/obj/Debug/net8.0/Ecommerce.Domain.dll
+/Ecommerce.Domain/obj/Debug/net8.0/Ecommerce.Domain.pdb
+/Ecommerce.API/bin/Debug/net8.0/Ecommerce.Domain.dll
+/Ecommerce.API/bin/Debug/net8.0/Ecommerce.Domain.pdb
+/Ecommerce.Infrastructure/bin/Debug/net8.0/Ecommerce.Domain.dll
+/Ecommerce.Infrastructure/bin/Debug/net8.0/Ecommerce.Domain.pdb
