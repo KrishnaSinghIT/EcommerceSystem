@@ -1,19 +1,6 @@
-using Ecommerce.API.BackgroundJobs;
+using Ecommerce.API.Extensions;
 using Ecommerce.API.Middleware;
-using Ecommerce.Application.BackgroundQueue;
-using Ecommerce.Application.Interface.CommonPersitance;
 using Ecommerce.Application.Observers;
-using Ecommerce.Application.Services.Implementations;
-using Ecommerce.Application.Services.Interfaces;
-using Ecommerce.Application.Services.Monitoring;
-using Ecommerce.Application.Validators;
-using Ecommerce.Infrastructure.CommonPersitance;
-using Ecommerce.Infrastructure.Data;
-using FluentValidation;
-using FluentValidation.AspNetCore;
-using Microsoft.EntityFrameworkCore;
-using OpenTelemetry.Resources;
-using OpenTelemetry.Trace;
 using Serilog;
 
 Log.Logger = new LoggerConfiguration()
@@ -25,58 +12,15 @@ Log.Logger = new LoggerConfiguration()
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Host.UseSerilog();
 
-
-builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
-
-builder.Services.AddScoped<IOrderService, OrderService>();
-
-builder.Services.AddScoped<IProductService, ProductService>();
-
-builder.Services.AddSingleton<IOrderStatusNotifier, OrderStatusNotifier>();
-builder.Services.AddSingleton<IOrderStatusObserver, EmailNotifier>();
-builder.Services.AddSingleton<IOrderStatusObserver, LoggerNotifier>();
-
-builder.Services.AddSingleton<IOrderProcessingQueue, OrderProcessingQueue>();
-
-builder.Services.AddHostedService<OrderFulfillmentService>();
-
-builder.Services.AddSingleton<IMetricsService, MetricsService>();
-
-builder.Services.AddFluentValidationAutoValidation()
-                .AddFluentValidationClientsideAdapters();
-
-// Register validators from assembly
-builder.Services.AddValidatorsFromAssemblyContaining<CreateOrderRequestValidator>();
+//  Clean DI registration
+builder.Services.AddApplicationServices(builder.Configuration);
+builder.Services.AddObservability(builder.Configuration);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
-builder.Host.UseSerilog();
-
-builder.Services.AddMemoryCache();
-
-builder.Services.AddOpenTelemetry()
-    .WithTracing(tracerProviderBuilder =>
-    {
-        tracerProviderBuilder
-            .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("EcommerceSystem"))
-            .AddAspNetCoreInstrumentation()
-            .AddHttpClientInstrumentation()
-            .AddSqlClientInstrumentation()
-            .AddConsoleExporter(); // we can also use AddZipkinExporter for UI repsentation
-    });
-
-builder.Services.AddHealthChecks()
-    .AddSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection")!,
-        name: "sql",
-        failureStatus: Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy
-    );
 
 var app = builder.Build();
 
@@ -91,16 +35,14 @@ app.UseMiddleware<ExceptionMiddleware>();
 
 app.UseAuthorization();
 app.MapControllers();
-
 app.MapHealthChecks("/health");
 
-//app.UseHttpsRedirection();
 
 var notifier = app.Services.GetRequiredService<IOrderStatusNotifier>();
 var emailObserver = app.Services.GetRequiredService<IOrderStatusObserver>();
-notifier.Subscribe(emailObserver); // EmailNotifier
-notifier.Subscribe(new LoggerNotifier()); // Manual instance
+notifier.Subscribe(emailObserver); 
+notifier.Subscribe(new LoggerNotifier()); 
 
 
 app.Run();
-public partial class Program { } 
+public partial class Program { }
